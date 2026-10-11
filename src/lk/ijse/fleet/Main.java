@@ -2,7 +2,7 @@ package lk.ijse.fleet;
 
 import java.util.Scanner;
 //import java.util.List;
-import java.util.LinkedList;
+import java.util.ArrayList;
 
 public class Main {
 
@@ -13,11 +13,21 @@ public class Main {
     
     
     public static void main(String[] args) {
+        
         run();
         
     }
     
     public static void run(){
+        fleetManager.setRentalEventListener(agreement -> System.out.println("[EVENT] New rental created: " + agreement.getAgreementId()));
+        
+        Thread statusThread = new Thread(new VehicleStatusMonitor(fleetManager));
+        statusThread.setDaemon(true);
+        statusThread.start();
+        
+        Thread overdueThread = new Thread(new OverdueReminderWorker(fleetManager));
+        overdueThread.setDaemon(true);
+        overdueThread.start();
         showAuthMenu();
     }
     
@@ -105,13 +115,13 @@ public class Main {
                     returnVehicle();
                     break;
                 case "6":
-
+                    viewRevenueReport();
                     break;
                 case "7":
-
+                    viewVehicleByFuelType();
                     break;
                 case "8":
-
+                    combineFleetCustomerReport();
                     break;
                 case "9":
                     viewAllCustomer();
@@ -127,8 +137,84 @@ public class Main {
         }
         
     }
+    public static void combineFleetCustomerReport(){
+        System.out.println("================================================================");
+        System.out.println("Combined Fleet & Customer Report");
+        System.out.println("================================================================");
+        fleetManager.printAllReportables();
+    }
+    public static void viewRevenueReport(){
+        System.out.println("""
+                           ================================================================
+                           FLEET REVENUE REPORT
+                           ================================================================
+                           Total Revenue: """ + fleetManager.generateRevenueReport() + " \n"
+                + "================================================================");
+
+    }
+     
+    private static void displayVehicleListInfo(ArrayList<Vehicle> vehicles) {
+        for (Vehicle v : vehicles) {
+
+            System.out.println("Vehicle ID         : " + v.getVehicleId());
+            System.out.println("Registration number: " + v.getRegistrationNumber());
+            System.out.println("Brand              : " + v.getBrand());
+            System.out.println("Model              : " + v.getModel());
+
+            if (v instanceof Car) {
+                System.out.println("Type: Car");
+            } else if (v instanceof Van) {
+                System.out.println("Type: Van");
+            } else if (v instanceof Truck) {
+                System.out.println("Type: Truck");
+            }
+            System.out.println("========================================================");
+        }
+    }
+    public static void viewVehicleByFuelType() {
+        System.out.println("========================================================");
+        System.out.println("FRMS VIEW VEHICLES BY FUEL TYPE | Logged in as: " + loggedInUser.getFullName());
+        System.out.println("========================================================");
+        System.out.println("Fuel Type:\n[1] Petrol\n[2] Diesel\n[3] Electric\n[4] Hybrid\nChoice: ");
+        String c = scanner.nextLine();
+        switch (c) {
+            case "1" -> {
+                if (fleetManager.getVehiclesByFuelType(FuelType.PETROL) == null) {
+                    System.out.println("No Petrol Vehicles..!\n");
+                    return;
+                }
+                System.out.println("===== Petrol Vehicle List =====");
+                displayVehicleListInfo(fleetManager.getVehiclesByFuelType(FuelType.PETROL));
+            }
+            case "2" -> {
+                if (fleetManager.getVehiclesByFuelType(FuelType.DIESEL) == null) {
+                    System.out.println("No Diesel Vehicles..!\n");
+                    return;
+                }
+                System.out.println("===== Diesel Vehicle List =====");
+                displayVehicleListInfo(fleetManager.getVehiclesByFuelType(FuelType.DIESEL));
+            }
+            case "3" -> {
+                if (fleetManager.getVehiclesByFuelType(FuelType.ELECTRIC) == null) {
+                    System.out.println("No Electric Vehicles..!\n");
+                    return;
+                }
+                System.out.println("===== Electric Vehicle List =====");
+                displayVehicleListInfo(fleetManager.getVehiclesByFuelType(FuelType.ELECTRIC));
+            }
+            case "4" -> {
+                if (fleetManager.getVehiclesByFuelType(FuelType.HYBRID) == null) {
+                    System.out.println("No Hybrid Vehicles..!\n");
+                    return;
+                }
+                System.out.println("===== Hybrid Vehicle List =====");
+                displayVehicleListInfo(fleetManager.getVehiclesByFuelType(FuelType.HYBRID));
+            }
+            default -> System.out.println("Invalid fuel type..!\n");
+        }
+    }
     public static void viewAllRenatl(){
-        LinkedList<RentalAgreement> agre=fleetManager.getAllAgreements();
+        ArrayList<RentalAgreement> agre=fleetManager.getAllAgreements();
         if (agre == null) {
             System.out.println("No agreements added yet");
             return;
@@ -141,7 +227,7 @@ public class Main {
         }
     }   
     public static void viewAllCustomer(){
-        LinkedList<Customer> cus =fleetManager.getAllCustomers();
+        ArrayList<Customer> cus =fleetManager.getAllCustomers();
         if(cus==null){
             System.out.println("No Customers added yet");
             return;
@@ -155,6 +241,9 @@ public class Main {
        
     }    
     public static void returnVehicle(){
+        System.out.println("================================================================");
+        System.out.println("RETURN VEHICLE");
+        System.out.println("================================================================");
         System.out.print("Enter Agreement ID : ");
         String id = scanner.nextLine();
         fleetManager.returnVehicle(id);
@@ -276,7 +365,16 @@ public class Main {
                     fleetManager.addVehicle(car);
                     return;
                 case "2":
-                    Van van = new Van(regnumber,brand, model ,rate,type);
+                    int seats=0;
+                    try{
+                        System.out.print("Enter passenger seats : ");
+                        seats = scanner.nextInt();
+                        scanner.nextLine();
+                    }catch(Exception e){
+                        System.out.println(e.getMessage());
+                    }
+                    
+                    Van van = new Van(regnumber,brand, model ,rate,type,seats);
                     fleetManager.addVehicle(van);
                     return;
                 case "3":

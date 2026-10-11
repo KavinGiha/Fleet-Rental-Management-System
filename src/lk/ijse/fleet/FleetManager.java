@@ -1,12 +1,14 @@
 package lk.ijse.fleet;
 
 //import java.util.List;
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.stream.*;
+import java.util.Comparator;
 
 public class FleetManager {
-    private LinkedList <Vehicle> vehicles= new LinkedList<>();
-    private LinkedList <Customer> customers= new LinkedList<>();
-    private LinkedList <RentalAgreement> agreements= new LinkedList<>();
+    private ArrayList <Vehicle> vehicles= new ArrayList<>();
+    private ArrayList <Customer> customers= new ArrayList<>();
+    private ArrayList <RentalAgreement> agreements= new ArrayList<>();
     private RentalEventListener rentalEvenListner;
     
     public void addVehicle(Vehicle v){
@@ -45,11 +47,11 @@ public class FleetManager {
     }
     
     public void setRentalEventListener(RentalEventListener listener){
-        
+        this.rentalEvenListner = listener;
     }
     
-    public LinkedList<Vehicle> getAvailableVehicles(){
-        LinkedList<Vehicle> availableVehicles = new LinkedList<>();
+    public ArrayList<Vehicle> getAvailableVehicles(){
+        ArrayList<Vehicle> availableVehicles = new ArrayList<>();
         for (Vehicle vehicle : vehicles) {
             if(vehicle.getStatus().equals(RentalStatus.AVAILABLE)){
                 availableVehicles.add(vehicle);
@@ -85,6 +87,9 @@ public class FleetManager {
         }
                 
         agreements.add(agreement);
+        if (rentalEvenListner != null) {
+            rentalEvenListner.onRentalCreated(agreement);
+        }
         v.setStatus(RentalStatus.RENTED);
                 
         return agreement;
@@ -101,49 +106,65 @@ public class FleetManager {
     }
     
     public FleetSnapshot generateSnapshot(){
-        return null;
+        return new FleetSnapshot();
     }
     
     synchronized public void printFleetStatus(){
-        generateSnapshot().printSummary();
+        //generateSnapshot().printSummary();
     }
     
     synchronized public void checkOverdueAgreements(){
-        
+        for (RentalAgreement agreement : agreements) {
+            agreement.setDaysElapsed(agreement.getDaysElapsed() + 1);
+            if(agreement.getDaysElapsed() > agreement.getRentalDays()){
+                System.out.println("[OVERDUE ALERT] Agreement " + agreement.getAgreementId() +" has exceeded its " + agreement.getRentalDays() +"-day rental period.");
+            }
+        }
     }
     
-    public LinkedList<Vehicle> getVehiclesByFuelType(FuelType type){
-        return null;
+    public ArrayList<Vehicle> getVehiclesByFuelType(FuelType type){
+       return (ArrayList<Vehicle>)vehicles.stream()
+                .filter(v -> v.getFuelType() == type)
+                .collect(Collectors.toList());
     }
     
-    public LinkedList<Customer> getCustomerSortedByName(){
-        return null;
+    public ArrayList<Customer> getCustomerSortedByName(){
+       return (ArrayList<Customer>)customers.stream()
+                .sorted(Comparator.comparing(c -> c.getFullName()))
+                .collect(Collectors.toList());
     }
     
     public double generateRevenueReport(){
-        return 0;
+        return agreements.stream()
+                .mapToDouble(a -> a.getTotalCost())
+                .sum();
     }
     
     public void printAllReportables(){
-        
+        ArrayList<Reportable> reportables = new ArrayList<>();
+        reportables.addAll(vehicles);
+        reportables.addAll(customers);
+        for (Reportable item : reportables) {
+            System.out.println(item.getReportCategory() + ": " + item.getSummary());
+        }
     }
     
-    public LinkedList<Customer> getAllCustomers(){
+    public ArrayList<Customer> getAllCustomers(){
         if(customers==null){
             return null;
         }
-        LinkedList<Customer> cus=new LinkedList<>();
+        ArrayList<Customer> cus=new ArrayList<>();
         for (Customer c : customers) {
             cus.add(c);
         }
         return cus;
     }
     
-    public LinkedList<RentalAgreement> getAllAgreements(){
+    public ArrayList<RentalAgreement> getAllAgreements(){
          if(agreements==null){
             return null;
         }
-        LinkedList<RentalAgreement> agre=new LinkedList<>();
+        ArrayList<RentalAgreement> agre=new ArrayList<>();
         for (RentalAgreement a : agreements) {
             agre.add(a);
         }
@@ -157,11 +178,29 @@ public class FleetManager {
         private double totalRevenue;
         
         public FleetSnapshot(){
+            int available = 0, rented = 0;
+            for (Vehicle vehicle : vehicles) {
+                if (vehicle.getStatus() == RentalStatus.AVAILABLE) {
+                    available++;
+                } else if (vehicle.getStatus() == RentalStatus.RENTED) {
+                    rented++;
+                }
+            }
             
+            double total = 0;
+            for (RentalAgreement agreement : agreements) {
+                total += agreement.getTotalCost();
+            }
+            
+            this.availableCount = available;
+            this.rentedCount = rented;
+            this.totalRevenue = total;
         }
         
-        public void printSummary(){
-            
+        public void printSummary(){            
+            System.out.println("[FLEET STATUS] Available: " + availableCount);
+            System.out.println("| Rented                : " + rentedCount );
+            System.out.println("| Total Revenue         : " + totalRevenue);
         }
     }
 }   

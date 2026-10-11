@@ -3,9 +3,10 @@ package lk.ijse.fleet;
 
 
 public class Van extends Vehicle {
-
-    public Van(String registrationNumber, String brand, String model, double dailyRate, FuelType fuelType) {
+    private int passengerseats;
+    public Van(String registrationNumber, String brand, String model, double dailyRate, FuelType fuelType,int passengerseats) {
         super(registrationNumber, brand, model, dailyRate, fuelType);
+        this.passengerseats= passengerseats;
     }
 
     @Override
