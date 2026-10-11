@@ -1,0 +1,55 @@
+package lk.ijse.fleet;
+
+public class RentalAgreement {
+    private static int idCount=1001;
+    private String agreementId;
+    private Vehicle vehicle;
+    private Customer customer;
+    private int rentalDays;
+    private double totalCost;
+    private int daysElapsed ;
+
+    public RentalAgreement(Vehicle vehicle, Customer customer, int rentalDays){
+        this.vehicle=vehicle;
+        this.customer=customer;
+        this.rentalDays = rentalDays;
+        double total = vehicle.calculateRentalCost(rentalDays);
+        this.totalCost = customer.applyDiscount(total);
+        this.agreementId = "AGR-"+idCount++;
+        this.daysElapsed=0;
+        
+    }
+
+    public String getAgreementId() {
+        return agreementId;
+    }
+
+    public Vehicle getVehicle() {
+        return vehicle;
+    }
+
+    public Customer getCustomer() {
+        return customer;
+    }
+
+    public int getRentalDays() {
+        return rentalDays;
+    }
+
+    public double getTotalCost() {
+        return totalCost;
+    }
+
+    public int getDaysElapsed() {
+        return daysElapsed;
+    }
+
+    public void setDaysElapsed(int daysElapsed) {
+        this.daysElapsed = daysElapsed;
+    }
+    
+    @Override
+    public String toString(){
+        return null;
+    }
+}
